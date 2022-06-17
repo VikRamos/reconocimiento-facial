@@ -1,0 +1,41 @@
+importar numpy como np
+importar cv2
+desde utils.bounding_box importar resizeBoundingBox
+de utils.predictor_keras importar predecir
+desde utils.predictor_pytorch importar model_predict
+
+def detectar_caras(img, modelo_cara, confianza=0.5, tamaño_objetivo=(160, 160), enable_generator=Falso):
+    caras = modelo_cara.detectar_caras(img)
+    img_color = img.copia()
+    índice = 1
+    para cara en caras:
+        bbox = cara['box']
+        cnf = cara['confianza']
+        si cnf >= confianza:
+            x,y,w,h = caja b
+            img_face_slice = img[y:(y + h),x:(x + w), :]
+            img_resize = cv2.resize(img_face_slice, target_size, cv2.INTER_AREA)      
+            cv2.rectangle(img_color, (x, y), (x + w, y + h), (0,255,0), 3)
+            si (habilitar_generador):
+                cv2.imwrite(f'face_{str(index)}.jpg', img_resize[:,:,::-1])
+                índice = índice + 1
+    devolver img_color
+
+
+def detectar_caras_con_mascarilla(img, modelo_cara, modelo_mascara, clases=['sin_mascara', 'mascarilla'], confianza=0.5, bbox_percentage=0.1, predictor='keras', target_size=(160,160)):
+    if predictor != 'keras' and predictor != 'torch': raise Exception('El predictor debe ser keras o torch')
+    
+    caras = modelo_cara.detectar_caras(img)
+    img_color = img.copia()
+    para cara en caras:
+        bbox = cara['box']
+        cnf = cara['confianza']
+        si cnf >= confianza:
+            x, y, w, h = resizeBoundingBox((img.shape[1], img.shape[0]), bbox, bbox_percentage)
+            img_face_slice = img[y:(y + h),x:(x + w), :]
+            img_resize = cv2.resize(img_face_slice, target_size, cv2.INTER_AREA)
+            pred,_ = predecir(mask_model, clases, np.expand_dims(img_resize[:,:,::-1], axis = 0)) if predictor == 'keras' else model_predict(mask_model, img_resize, clases)
+            color = (0,255, 0) if pred == 'máscara' else (255,0,0)
+            cv2.rectangle(img_color, (x, y), (x + w, y + h), color, 3)
+            cv2.putText(img_color, pred.replace("_", " ").mayúsculas(), (x-2, y-7), cv2.FONT_HERSHEY_SIMPLEX, .9, color, 2)
+    devolver img_color
